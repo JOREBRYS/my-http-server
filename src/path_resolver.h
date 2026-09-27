@@ -26,10 +26,9 @@ boost::beast::http::status to_http_status(ResolverCode rc);
 class PathResolver{
     private:
     std::filesystem::path doc_root_;
-
+    static std::optional<std::string> url_decode(std::string_view in);
     
     public:
-    static std::optional<std::string> url_decode(std::string_view in);
     explicit PathResolver(std::filesystem::path doc_root);
 
     ResolverResult resolve(std::string_view target) const;

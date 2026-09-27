@@ -16,10 +16,7 @@ class server{
     struct server_data{
         std::string ip;
         unsigned short port;
-
-        server_data(){
-
-        }
+        
         server_data(const std::string& ip, unsigned short port): ip(ip), port(port){
 
         }
