@@ -16,7 +16,7 @@ class server{
     struct server_data{
         std::string ip;
         unsigned short port;
-        
+
         server_data(const std::string& ip, unsigned short port): ip(ip), port(port){
 
         }
@@ -26,6 +26,8 @@ class server{
     net::io_context& io_context_;
     server_data data_;
     net::ip::tcp::acceptor acceptor_;
+
+    std::shared_ptr<PathResolver> resolver_ptr_;
 
     unsigned short fails_in_row;
     const unsigned short critical_fails_amount = 5;
@@ -42,9 +44,11 @@ class server{
                 }else{
                     try{
                         auto session_ptr = std::make_shared<session>(
-                            std::move(beast::tcp_stream(std::move(socket)))
+                            std::move(beast::tcp_stream(std::move(socket))),
+                            resolver_ptr_
                         );
                         session_ptr->start();
+                        fails_in_row = 0;
                     }catch(const std::exception& e){
                         fails_in_row++;
                         std::cerr << "accept error: " << e.what() << '\n';
@@ -60,10 +64,10 @@ class server{
     }
 
     public:
-    server(const server_data& data, net::io_context& io_context):
+    server(const server_data& data, net::io_context& io_context, std::shared_ptr<PathResolver> resolver_ptr):
         io_context_(io_context), data_(data),
         acceptor_(io_context_, {net::ip::make_address(data_.ip), data_.port}),
-        fails_in_row(0){
+        resolver_ptr_(resolver_ptr), fails_in_row(0){
         std::cout << "Server is released at ip: " << data_.ip << " and port: " << data_.port << '\n';
     } 
 

@@ -1,29 +1,34 @@
 #include "server.h"
 #include <iostream>
 #include <string>
+#include "path_resolver.h"
 
-#define fail 1
-#define success 0
+constexpr int FAILURE = 1;
+constexpr int SUCCESS = 0;
 
 using namespace std;
 
 int main(int argc, char** argv){
-    if(argc != 3){
-        std::cerr << "software requires 3 arguments: server <ip> <port>\n";
-        return fail;
-    }
-
-    auto serv_data = server::server_data{
-        argv[1],
-        static_cast<unsigned short>(stoi(argv[2]))
-    };
-
     try{
+        if(argc != 3){
+            std::cerr << "software requires 3 arguments: server <ip> <port>\n";
+            return FAILURE;
+        }
+
+        auto serv_data = server::server_data{
+            argv[1],
+            static_cast<unsigned short>(stoi(argv[2]))
+        };
+
+        auto resolver_ptr
+            = std::make_shared<PathResolver>("/home/jorebrys_u/software_engineeing/Boost_study/http/server/public");
+
         boost::asio::io_context io_context;
 
         server serv(
             serv_data,
-            io_context
+            io_context,
+            resolver_ptr
         );
         serv.start();
 
@@ -32,5 +37,5 @@ int main(int argc, char** argv){
         std::cerr << "error: " << e.what() << '\n';
     }
 
-    return success;
+    return SUCCESS;
 }
