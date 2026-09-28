@@ -34,8 +34,5 @@ class session: public std::enable_shared_from_this<session>{
 
     }
 
-    void start(){
-        std::cout << "Client connected greatfully!\n";
-        do_read();
-    }
+    void start();
 };
