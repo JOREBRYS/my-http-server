@@ -10,6 +10,27 @@
 
 namespace fs = std::filesystem;
 
+namespace {
+std::string_view mime_type(std::string_view path) {
+    auto pos = path.rfind('.');
+    if (pos == std::string_view::npos) {
+        return "application/octet-stream";
+    }
+    auto ext = path.substr(pos);
+    if (boost::beast::iequals(ext, ".html") || boost::beast::iequals(ext, ".htm")) return "text/html";
+    if (boost::beast::iequals(ext, ".css"))  return "text/css";
+    if (boost::beast::iequals(ext, ".js"))   return "application/javascript";
+    if (boost::beast::iequals(ext, ".json")) return "application/json";
+    if (boost::beast::iequals(ext, ".png"))  return "image/png";
+    if (boost::beast::iequals(ext, ".jpg") || boost::beast::iequals(ext, ".jpeg")) return "image/jpeg";
+    if (boost::beast::iequals(ext, ".gif"))  return "image/gif";
+    if (boost::beast::iequals(ext, ".svg"))  return "image/svg+xml";
+    if (boost::beast::iequals(ext, ".txt"))  return "text/plain";
+    if (boost::beast::iequals(ext, ".wasm")) return "application/wasm";
+    return "application/octet-stream";
+}
+}
+
 void session::do_read(){
     auto self = shared_from_this();
     auto request_ptr = std::make_shared<http::request<http::string_body>>();
@@ -63,7 +84,44 @@ void session::process_request(http::request<http::string_body> request) {
     }
 }
 void session::send_file(const fs::path& path, http::request<http::string_body> req) {
-    std::cout << "file is sent\n";
+    auto self = shared_from_this();
+    auto response = std::make_shared<http::response<http::file_body>>();
+
+    error_code err;
+    response->version(req.version());
+    response->keep_alive(req.keep_alive());
+    response->set(http::field::content_type, mime_type(path.string()));
+    response->body().open(
+        path.c_str(),
+        beast::file_mode::scan,
+        err
+    );
+    if(err){
+        std::cerr << "open faild: " << err.message() << '\n';
+        return send_error(
+            http::status::internal_server_error,
+            std::move(req),
+            http::obsolete_reason(http::status::internal_server_error)
+        );
+    }
+    response->prepare_payload();
+
+    http::async_write(
+        stream_,
+        *response,
+        [this, self, response] (error_code err, std::size_t){
+            if(err){
+                std::cerr << "write error: " << err.message() << '\n';
+                return; 
+            }else{
+                std::cout << "file was sent\n";
+                if(!response->keep_alive()){
+                    return close();
+                }
+                do_read();
+            }
+        }
+    );
 }
 void session::send_error(http::status status,
                          http::request<http::string_body> req,
