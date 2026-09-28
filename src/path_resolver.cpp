@@ -148,7 +148,7 @@ ResolverResult PathResolver::resolve(std::string_view target) const {
             return {ResolverCode::Internal, std::nullopt, "exists faild: " + err_exist.message()};
         }
 
-        return {ResolverCode::NotFound, std::nullopt, "no such directory"};
+        return {ResolverCode::NotFound, std::nullopt, "not found: " + canon.string()};
     }
 
     error_code err3;
@@ -165,7 +165,7 @@ ResolverResult PathResolver::resolve(std::string_view target) const {
                 return {ResolverCode::Internal, std::nullopt, "exists faild: " + err_exist.message()};
             }
 
-        return {ResolverCode::NotFound, std::nullopt, "no such directory"};
+        return {ResolverCode::NotFound, std::nullopt, "not found: " + canon.string()};
         }
 
         error_code err4;

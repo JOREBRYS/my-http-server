@@ -46,7 +46,7 @@ void session::process_request(http::request<http::string_body> request) {
                 << "\": " << result.message << '\n';
 
             auto reason = http::obsolete_reason(status);
-            send_error(
+            return send_error(
                 status,
                 std::move(request),
                 std::string_view(reason.data(), reason.size())
@@ -65,8 +65,33 @@ void session::process_request(http::request<http::string_body> request) {
 void session::send_file(const fs::path& path, http::request<http::string_body> req) {
     std::cout << "file is sent\n";
 }
-void session::send_error(http::status status, http::request<http::string_body> req, std::string_view message) {
-    std::cout << "error is logged\n";
+void session::send_error(http::status status,
+                         http::request<http::string_body> req,
+                         std::string_view message) {
+    auto self = shared_from_this();
+    auto response = std::make_shared<http::response<http::string_body>>();
+    response->version(req.version());
+    response->keep_alive(req.keep_alive());
+    response->result(status);
+    response->set(http::field::content_type, "text/plain");
+    response->body() = std::string(message) + "\n";
+    response->prepare_payload();
+
+    http::async_write(
+        stream_,
+        *response,
+        [this, self, response](error_code err, std::size_t){
+            if(err){
+                std::cerr << "write error: " << err.message() << '\n';
+            }else{
+                std::cout << "error message was sent\n";
+                if(!response->keep_alive()){
+                    return close();
+                }
+                do_read();
+            }
+        }
+    );
 }
 
 void session::start(){
