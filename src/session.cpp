@@ -5,6 +5,7 @@
 #include <memory>
 #include <cstddef>
 #include <filesystem>
+#include <chrono>
 
 #include "session.h"
 
@@ -35,6 +36,7 @@ void session::do_read(){
     auto self = shared_from_this();
     auto request_ptr = std::make_shared<http::request<http::string_body>>();
 
+    stream_.expires_after(std::chrono::seconds(30));
     http::async_read(
         stream_,
         http_buf_,
@@ -44,6 +46,9 @@ void session::do_read(){
                 if(err == net::error::operation_aborted
                     or err == http::error::end_of_stream){
                         std::cout << "The connection is closed.\n";
+                }else if(err == beast::error::timeout){
+                    std::cerr << "time out\n";
+                    return close();
                 }else{
                     std::cout << "read error: " << err.message() << '\n';
                     close();
@@ -79,7 +84,7 @@ void session::process_request(http::request<http::string_body> request) {
         send_error(
             http::status::method_not_allowed,
             std::move(request),
-            "405 Method Not Allowed"
+            http::obsolete_reason(http::status::method_not_allowed)
         );  
     }
 }
@@ -106,11 +111,16 @@ void session::send_file(const fs::path& path, http::request<http::string_body> r
     }
     response->prepare_payload();
 
+    stream_.expires_after(std::chrono::seconds(30));
     http::async_write(
         stream_,
         *response,
         [this, self, response] (error_code err, std::size_t){
             if(err){
+                if(err == beast::error::timeout){
+                    std::cerr << "time out!\n";
+                    return close();
+                }
                 std::cerr << "write error: " << err.message() << '\n';
                 return; 
             }else{
@@ -132,14 +142,22 @@ void session::send_error(http::status status,
     response->keep_alive(req.keep_alive());
     response->result(status);
     response->set(http::field::content_type, "text/plain");
+    if(status == http::status::method_not_allowed){
+        response->set(http::field::allow, "GET");
+    }
     response->body() = std::string(message) + "\n";
     response->prepare_payload();
 
+    stream_.expires_after(std::chrono::seconds(30));
     http::async_write(
         stream_,
         *response,
         [this, self, response](error_code err, std::size_t){
             if(err){
+                if(err == beast::error::timeout){
+                    std::cerr << "time out!\n";
+                    return close();
+                }
                 std::cerr << "write error: " << err.message() << '\n';
             }else{
                 std::cout << "error message was sent\n";
