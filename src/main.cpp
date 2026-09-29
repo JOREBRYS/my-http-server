@@ -1,6 +1,7 @@
 #include "server.h"
 #include <iostream>
 #include <string>
+#include <csignal>
 #include "path_resolver.h"
 
 constexpr int FAILURE = 1;
@@ -9,6 +10,8 @@ constexpr int SUCCESS = 0;
 using namespace std;
 
 int main(int argc, char** argv){
+    std::signal(SIGPIPE, SIG_IGN);
+
     try{
         if(argc != 3){
             std::cerr << "software requires 3 arguments: server <ip> <port>\n";

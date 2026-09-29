@@ -6,6 +6,7 @@
 #include <string>
 #include <memory>
 #include "session.h"
+#include <boost/asio/signal_set.hpp>
 
 namespace net = boost::asio;
 namespace beast = boost::beast;
@@ -31,6 +32,8 @@ class server{
 
     unsigned short fails_in_row;
     const unsigned short critical_fails_amount = 5;
+
+    net::signal_set signal_;
 
     void do_accept(){
         acceptor_.async_accept(
@@ -63,15 +66,31 @@ class server{
         );
     }
 
+    void do_signal_set(){
+        signal_.async_wait(
+            [this](boost::system::error_code err, int signum){
+                if(err){
+                    std::cerr << "signal set faild: " << err.message() << '\n';
+                    return; 
+                }else{
+                    std::cout << "\rsignal: " << signum << " recieved, shutting down\n";
+                    acceptor_.close();
+                    io_context_.stop(); 
+                }
+            }
+        );
+    }
+
     public:
     server(const server_data& data, net::io_context& io_context, std::shared_ptr<PathResolver> resolver_ptr):
         io_context_(io_context), data_(data),
         acceptor_(io_context_, {net::ip::make_address(data_.ip), data_.port}),
-        resolver_ptr_(resolver_ptr), fails_in_row(0){
+        resolver_ptr_(resolver_ptr), fails_in_row(0), signal_(io_context_, SIGINT, SIGTERM){
         std::cout << "Server is released at ip: " << data_.ip << " and port: " << data_.port << '\n';
     } 
 
     void start(){
+        do_signal_set();
         do_accept();
     }
 };
