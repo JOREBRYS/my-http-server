@@ -24,7 +24,8 @@ class session: public std::enable_shared_from_this<session>{
 
     void do_read();
     void process_request(http::request<http::string_body> request);
-    void send_file(const std::filesystem::path& path, http::request<http::string_body> req);
+    void send_file_head(const std::filesystem::path& path, http::request<http::string_body> req);
+    void send_file_get(const std::filesystem::path& path, http::request<http::string_body> req);
     void send_error(http::status status, http::request<http::string_body> req, std::string_view message);
     void close();
 
