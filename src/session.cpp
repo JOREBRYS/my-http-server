@@ -209,8 +209,13 @@ void session::send_error(http::status status,
     if(status == http::status::method_not_allowed){
         response->set(http::field::allow, "GET, HEAD");
     }
-    response->body() = std::string(message) + "\n";
-    response->prepare_payload();
+    if(req.method() == http::verb::head){
+        response->body() = "";
+        response->content_length(message.size() + 1);
+    }else{
+        response->body() = std::string(message) + "\n";
+        response->prepare_payload();
+    }
 
     stream_.expires_after(std::chrono::seconds(30));
     http::async_write(
