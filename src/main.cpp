@@ -3,6 +3,7 @@
 #include <string>
 #include <csignal>
 #include "path_resolver.h"
+#include "logger.h"
 
 constexpr int FAILURE = 1;
 constexpr int SUCCESS = 0;
@@ -12,9 +13,12 @@ using namespace std;
 int main(int argc, char** argv){
     std::signal(SIGPIPE, SIG_IGN);
 
+    logger::instance().set_output(std::cout);
+    logger::instance().set_level(logger::level::DEBUG);
+
     try{
         if(argc != 3){
-            std::cerr << "software requires 3 arguments: server <ip> <port>\n";
+            LOG_ERROR("software requires 3 arguments: server <ip> <port>\n");
             return FAILURE;
         }
 
@@ -37,7 +41,7 @@ int main(int argc, char** argv){
 
         io_context.run();
     }catch(const std::exception& e){
-        std::cerr << "error: " << e.what() << '\n';
+        LOG_ERROR("error: " << e.what() << '\n');
     }
 
     return SUCCESS;

@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <chrono>
 
+#include "logger.h"
 #include "session.h"
 
 namespace fs = std::filesystem;
@@ -28,6 +29,7 @@ std::string_view mime_type(std::string_view path) {
     if (boost::beast::iequals(ext, ".svg"))  return "image/svg+xml";
     if (boost::beast::iequals(ext, ".txt"))  return "text/plain";
     if (boost::beast::iequals(ext, ".wasm")) return "application/wasm";
+    if (boost::beast::iequals(ext, ".ico")) return "image/x-icon";
     return "application/octet-stream";
 }
 }
@@ -45,17 +47,16 @@ void session::do_read(){
             if(err){
                 if(err == net::error::operation_aborted
                     or err == http::error::end_of_stream){
-                        std::cout << "The connection is closed.\n";
+                        LOG_INFO("The connection is closed.\n");
                 }else if(err == beast::error::timeout){
-                    std::cerr << "time out\n";
+                    LOG_DEBUG("time out on idle connection\n");
                     return close();
                 }else{
-                    std::cout << "read error: " << err.message() << '\n';
+                    LOG_INFO("read error: " << err.message() << '\n');
                     close();
                 }
             }else{
-                std::cout << "read request successfully!\n";
-                std::cout << *request_ptr << '\n';
+                LOG_DEBUG("read request successfully!\n");
                 process_request(std::move(*request_ptr));
             }
         }
@@ -67,8 +68,8 @@ void session::process_request(http::request<http::string_body> request) {
     if(method == http::verb::get){
         auto res = resolver_ptr_->resolve({request.target().data(), request.target().size()});
         if(res.code != ResolverCode::OK){
-            std::cerr << "resolve failed for target=\"" << request.target()
-                << "\": " << res.message << '\n';
+            LOG_ERROR("resolve failed for target=\"" << request.target()
+                << "\": " << res.message << '\n');
             auto status = to_http_status(res.code);
             return send_error(
                 status,
@@ -82,8 +83,8 @@ void session::process_request(http::request<http::string_body> request) {
     if(method == http::verb::head){
         auto res = resolver_ptr_->resolve({request.target().data(), request.target().size()});
         if(res.code != ResolverCode::OK){
-            std::cerr << "resolve failed for target=\"" << request.target()
-                << "\": " << res.message << '\n';
+            LOG_ERROR("resolve failed for target=\"" << request.target()
+                << "\": " << res.message << '\n');
             auto status = to_http_status(res.code);
             return send_error(
                 status,
@@ -117,7 +118,7 @@ void session::send_file_get(const fs::path& path, http::request<http::string_bod
         err
     );
     if(err){
-        std::cerr << "open failed: " << err.message() << '\n';
+        LOG_ERROR("open failed: " << err.message() << '\n');
         return send_error(
             http::status::internal_server_error,
             std::move(req),
@@ -133,13 +134,13 @@ void session::send_file_get(const fs::path& path, http::request<http::string_bod
         [this, self, response] (error_code err, std::size_t){
             if(err){
                 if(err == beast::error::timeout){
-                    std::cerr << "time out!\n";
+                    LOG_DEBUG("time out on idle connection\n");
                     return close();
                 }
-                std::cerr << "write error: " << err.message() << '\n';
+                LOG_ERROR("write error: " << err.message() << '\n');
                 return; 
             }else{
-                std::cout << "file was sent\n";
+                LOG_DEBUG("file was sent\n");
                 if(!response->keep_alive()){
                     return close();
                 }
@@ -161,7 +162,7 @@ void session::send_file_head(const fs::path& path, http::request<http::string_bo
     error_code err;
     file.open(path.c_str(), beast::file_mode::scan, err);
     if(err){
-        std::cerr << "open failed: " << err.message() << '\n';
+        LOG_ERROR("open failed: " << err.message() << '\n');
         auto status = http::status::internal_server_error;
         return send_error(
             status,
@@ -181,14 +182,14 @@ void session::send_file_head(const fs::path& path, http::request<http::string_bo
                 if(err == net::error::operation_aborted){
                     return;
                 }else if(err == beast::error::timeout){
-                    std::cerr << "timeout\n";
+                    LOG_DEBUG("time out on idle connection\n");
                     return close();
                 }else{
-                    std::cerr << "write error: " << err.message() << '\n';
+                    LOG_ERROR("write error: " << err.message() << '\n');
                     return close();
                 }
             }
-            std::cout << "head was sent\n";
+            LOG_INFO("head was sent\n");
             if(!res_ptr->keep_alive()){
                 return close();
             }
@@ -224,12 +225,12 @@ void session::send_error(http::status status,
         [this, self, response](error_code err, std::size_t){
             if(err){
                 if(err == beast::error::timeout){
-                    std::cerr << "time out!\n";
+                    LOG_DEBUG("time out on idle connection\n");
                     return close();
                 }
-                std::cerr << "write error: " << err.message() << '\n';
+                LOG_ERROR("write error: " << err.message() << '\n');
             }else{
-                std::cout << "error message was sent\n";
+                LOG_DEBUG("error message was sent\n");
                 if(!response->keep_alive()){
                     return close();
                 }
@@ -240,7 +241,7 @@ void session::send_error(http::status status,
 }
 
 void session::start(){
-    std::cout << "Client connected\n";
+    LOG_DEBUG("Client connected\n");
     do_read();
 }
 

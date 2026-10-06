@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page 1 · MY HTTP SERVER</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
+        body {
+            background: #d6ecfa; /* same gentle blue */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        .title {
+            transform: translateY(-10vh);
+            font-size: clamp(2.5rem, 8vw, 7rem);
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            color: #1a3a5c;
+            text-align: center;
+            text-shadow: 0 2px 12px rgba(26, 58, 92, 0.15);
+            user-select: none;
+            margin-bottom: 2rem;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 1.5rem;
+            transform: translateY(-5vh);
+        }
+
+        .btn {
+            background: #1a3a5c;
+            color: #eef7ff;
+            border: none;
+            padding: 0.9rem 2.5rem;
+            font-size: 1.3rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            border-radius: 60px;
+            cursor: pointer;
+            box-shadow: 0 8px 18px rgba(26, 58, 92, 0.25);
+            transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+            text-decoration: none;
+            display: inline-block;
+            font-family: inherit;
+        }
+
+        .btn:hover {
+            background: #0f2b44;
+            box-shadow: 0 10px 22px rgba(26, 58, 92, 0.35);
+            transform: scale(1.02);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+            box-shadow: 0 4px 10px rgba(26, 58, 92, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="title">PAGE NUMBER 1</div>
+    <div class="nav-buttons">
+        <a href="/" class="btn">HOME</a>
+        <a href="/page2.html" class="btn">GO TO PAGE 2</a>
+    </div>
+</body>
+</html>

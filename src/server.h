@@ -7,6 +7,7 @@
 #include <memory>
 #include "session.h"
 #include <boost/asio/signal_set.hpp>
+#include "logger.h"
 
 namespace net = boost::asio;
 namespace beast = boost::beast;
@@ -40,7 +41,7 @@ class server{
             [this](boost::system::error_code err, net::ip::tcp::socket socket){
                 if(err){
                     fails_in_row++;
-                    std::cerr << "accept error: " << err.message() << '\n';
+                    LOG_ERROR("accept error: " << err.message() << '\n');
                     if(fails_in_row == critical_fails_amount){
                         throw std::runtime_error("reached the critical amount of fails!");
                     }
@@ -54,7 +55,7 @@ class server{
                         fails_in_row = 0;
                     }catch(const std::exception& e){
                         fails_in_row++;
-                        std::cerr << "accept error: " << e.what() << '\n';
+                        LOG_ERROR("accept error: " << e.what() << '\n');
                         if(fails_in_row == critical_fails_amount){
                             throw std::runtime_error("reached the critical amount of fails!");
                         }  
@@ -70,10 +71,10 @@ class server{
         signal_.async_wait(
             [this](boost::system::error_code err, int signum){
                 if(err){
-                    std::cerr << "signal set faild: " << err.message() << '\n';
+                    LOG_ERROR("signal set faild: " << err.message() << '\n');
                     return; 
                 }else{
-                    std::cout << "\rsignal: " << signum << " recieved, shutting down\n";
+                    LOG_INFO("\rsignal: " << signum << " recieved, shutting down\n");
                     acceptor_.close();
                     io_context_.stop(); 
                 }
@@ -86,7 +87,7 @@ class server{
         io_context_(io_context), data_(data),
         acceptor_(io_context_, {net::ip::make_address(data_.ip), data_.port}),
         resolver_ptr_(resolver_ptr), fails_in_row(0), signal_(io_context_, SIGINT, SIGTERM){
-        std::cout << "Server is released at ip: " << data_.ip << " and port: " << data_.port << '\n';
+        LOG_INFO("Server is released at ip: " << data_.ip << " and port: " << data_.port << '\n');
     } 
 
     void start(){
